@@ -1,0 +1,80 @@
+---
+title: "Peer Assignment 1"
+output: html_document
+---
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+Data Loading
+```{r}
+mydata <- read.csv("activity.csv")
+```
+
+## What is the mean total number of steps taken per day?
+
+```{r}
+totalnumberofsteps <- aggregate(mydata$steps, by=list(Category=mydata$date), FUN=sum, na.rm=TRUE)
+hist(totalnumberofsteps$x)
+mean(totalnumberofsteps$x)
+median(totalnumberofsteps$x)
+```
+
+## What is the average daily activity pattern?
+
+```{r}
+averagedailypattern <- aggregate(mydata$steps, by=list(Category=mydata$interval), FUN=mean, na.rm=TRUE)
+
+plot(averagedailypattern, type="l")
+
+averagedailypattern[which(averagedailypattern$x==max(averagedailypattern$x)),]
+```
+
+## Inputting Missing Values
+### Total Number of Missing Values
+```{r}
+sum(is.na(mydata$steps))
+```
+
+### Create New Dataset, make histogram and report mean and median
+```{r}
+
+mydatafilled <- mydata
+
+missingdata<- subset(mydatafilled, is.na(mydatafilled$steps))
+
+for (i in 1:nrow(mydatafilled)) {
+  if (is.na(mydatafilled[i,]$steps)){
+    mydatafilled[i,]$steps = averagedailypattern[averagedailypattern$Category==mydatafilled[i,]$interval,]$x
+  }  
+}
+
+totalnumberofstepsfilleddata <- aggregate(mydatafilled$steps, by=list(Category=mydatafilled$date), FUN=sum, na.rm=TRUE)
+hist(totalnumberofstepsfilleddata$x)
+mean(totalnumberofstepsfilleddata$x)
+median(totalnumberofstepsfilleddata$x)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+### Create a new factor variable for weekday and weekend
+```{r}
+weektype=vector()
+for (i in 1:nrow(mydatafilled)) {
+  if (weekdays(as.Date(mydatafilled[i,]$date))=="Saturday"){
+    weektype[i]="weekend"
+  }
+  else if (weekdays(as.Date(mydatafilled[i,]$date))=="Sunday"){
+    weektype[i]="weekend"
+  }
+  else{
+    weektype[i]="weekday"
+  }
+}
+mydatafilled = cbind(mydatafilled, weektype)
+```
+### Panel plot containing a time series plot
+```{r}
+averagesteps <- aggregate(mydatafilled$steps, by=list(Category=mydatafilled$weektype, mydatafilled$interval), FUN=mean, na.rm=TRUE)
+names(averagesteps) <- c("weektype", "interval", "steps")
+library(lattice)
+xyplot(steps ~ interval | weektype, averagesteps, type="l", layout=c(1,2), xlab="Interval", ylab="Number of steps")
+```
